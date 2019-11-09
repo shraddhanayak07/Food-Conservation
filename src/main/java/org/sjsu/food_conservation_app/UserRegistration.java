@@ -49,7 +49,7 @@ public class UserRegistration {
 				e1.printStackTrace();
 			}
 			
-			return Response.status(400).entity(errorBody.toString()).build();
+			return Response.status(400).entity(errorBody.toString()).header("Access-Control-Allow-Origin", "*").build();
 		}
 		
 		boolean validRequestBody = validateRequestBody(inputBody);
@@ -61,16 +61,16 @@ public class UserRegistration {
 			} catch (JSONException e) {
 				e.printStackTrace();
 			}
-			return Response.status(400).entity(errorBody.toString()).build();
+			return Response.status(400).entity(errorBody.toString()).header("Access-Control-Allow-Origin", "*").build();
 		}
 		
 		JSONObject addUserToDB = addUserToDB(inputBody);
 		System.out.println(addUserToDB);
 		if(addUserToDB.has("error")) {
-			return Response.status(500).entity(addUserToDB.toString()).build();
+			return Response.status(500).entity(addUserToDB.toString()).header("Access-Control-Allow-Origin", "*").build();
 		}
 		
-		return Response.status(200).entity(addUserToDB.toString()).build();
+		return Response.status(200).entity(addUserToDB.toString()).header("Access-Control-Allow-Origin", "*").build();
 	}
 	
 	public static boolean validateRequestBody(JSONObject inputBody) {

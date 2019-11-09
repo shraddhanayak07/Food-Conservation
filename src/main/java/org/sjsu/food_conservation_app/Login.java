@@ -39,23 +39,23 @@ public class Login {
 		} catch (JSONException e) {
 			e.printStackTrace();
 			errorBody = getErrorBody("Invalid Request Body");
-			return Response.status(400).entity(errorBody.toString()).build();
+			return Response.status(400).entity(errorBody.toString()).header("Access-Control-Allow-Origin", "*").build();
 		}
 		
 		boolean validRequestBody = validateRequestBody(inputBody);
 		
 		if (! validRequestBody) {
 			errorBody = getErrorBody("Required Parameters Missing");
-			return Response.status(400).entity(errorBody.toString()).build();
+			return Response.status(400).entity(errorBody.toString()).header("Access-Control-Allow-Origin", "*").build();
 		}
 		
 		JSONObject outputResponse = matchPassword(inputBody);
 		
 		if (outputResponse.has("error")) {
-			return Response.status(401).entity(outputResponse.toString()).build();
+			return Response.status(401).entity(outputResponse.toString()).header("Access-Control-Allow-Origin", "*").build();
 		}
 		
-		return Response.status(200).entity(outputResponse.toString()).build();
+		return Response.status(200).entity(outputResponse.toString()).header("Access-Control-Allow-Origin", "*").build();
 	}
 	
 	public static boolean validateRequestBody(JSONObject inputBody) {

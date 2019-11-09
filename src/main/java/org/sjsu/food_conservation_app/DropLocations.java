@@ -44,7 +44,7 @@ public class DropLocations {
 			}
 		} catch(NullPointerException e) {
 			errorBody = getErrorBody("Missing required parameters");
-			return Response.status(400).entity(errorBody.toString()).build();
+			return Response.status(400).entity(errorBody.toString()).header("Access-Control-Allow-Origin", "*").build();
 		}
 		
 		MongoClient mongo;
@@ -53,7 +53,7 @@ public class DropLocations {
 		} catch (UnknownHostException e) {
 			e.printStackTrace();
 			errorBody = getErrorBody("Internal Server Error");
-			return Response.status(500).entity(errorBody.toString()).build();
+			return Response.status(500).entity(errorBody.toString()).header("Access-Control-Allow-Origin", "*").build();
 		}
 
 		DB db = mongo.getDB(appDatabaseName);
@@ -78,10 +78,10 @@ public class DropLocations {
 		} catch (JSONException e) {
 			e.printStackTrace();
 			errorBody = getErrorBody("No locations found in the city JSON");
-			return Response.status(404).entity(errorBody.toString()).build();
+			return Response.status(404).entity(errorBody.toString()).header("Access-Control-Allow-Origin", "*").build();
 		}
 		
-		return Response.status(200).entity(outputBody.toString()).build();
+		return Response.status(200).entity(outputBody.toString()).header("Access-Control-Allow-Origin", "*").build();
 	}
 	
 	public static JSONObject getErrorBody(String errorMessage) {
