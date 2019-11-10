@@ -39,7 +39,7 @@ public class FoodTracker {
 	}
 
 
-	public static JSONArray Find_by_type(DBCollection table, String type)
+	public static JSONArray findByType(DBCollection table, String type)
 	{
 		JSONArray jsonarray = new JSONArray();
 		BasicDBObject searchQuery = new BasicDBObject();
