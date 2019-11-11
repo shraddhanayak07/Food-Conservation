@@ -4,29 +4,23 @@ import beans.FoodBean;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
 import javax.ws.rs.HeaderParam;
-
-
-import com.mongodb.BasicDBList;
 import com.mongodb.BasicDBObject;
 import com.mongodb.DB;
 import com.mongodb.DBCollection;
 import com.mongodb.DBCursor;
+import com.mongodb.DBObject;
 import com.mongodb.MongoClient;
-import java.net.UnknownHostException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
+import com.mongodb.util.JSON;
 
 import javax.ws.rs.Consumes;
+import javax.ws.rs.DELETE;
+import javax.ws.rs.DefaultValue;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
@@ -35,43 +29,60 @@ import javax.ws.rs.core.Response;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import com.mongodb.BasicDBObject;
-import com.mongodb.DB;
-import com.mongodb.DBCollection;
-import com.mongodb.DBCursor;
-import com.mongodb.DBObject;
-import com.mongodb.MongoClient;
 
 @Path("/food")
 public class FoodTracker {
 
+	public static String mongoServerURL = "localhost";
+	public static int mongoPort = 27017;
+	public static String appDatabaseName = "food_conservation";
+	public static String foodCollectionName = "foodbank";
+	
 	@GET
-	@Path("/getallfood")
 	@Produces(MediaType.APPLICATION_JSON)
-	public static ArrayList<FoodBean> findFoodAll() throws UnknownHostException
+	public Response findFoodAll(@DefaultValue("======") @QueryParam("type") String type, @DefaultValue("-1") @QueryParam("location") String location)
 	{
-		MongoClient mongo = new MongoClient( "localhost" , 27017 );
-		DB db = mongo.getDB("FoodRepository");
-		DBCollection collection = db.getCollection("foodbank");
+		MongoClient mongo;
+		JSONObject errorBody;
 		
-		ArrayList<FoodBean> allfood = new ArrayList<FoodBean>();
-		DBCursor cursor = collection.find();
+		System.out.println(type);
+		System.out.println(location);
+		try {
+			mongo = new MongoClient( mongoServerURL , mongoPort );
+		} catch (UnknownHostException e1) {
+			e1.printStackTrace();
+			errorBody = getErrorBody("Internal Server Error");
+			return Response.status(50).entity(errorBody.toString()).build();
+		}
+		
+		DB db = mongo.getDB(appDatabaseName);
+		DBCollection collection = db.getCollection(foodCollectionName);
+		
+		BasicDBObject searchQuery = new BasicDBObject();
+		if (! type.equals("======")) {
+			searchQuery.put("type", type);
+		}
+		
+		if(! location.equals("-1")) {
+			searchQuery.put("location", location);
+		}
+		
+		DBCursor cursor = collection.find(searchQuery);
+		List<Map> allfood = new ArrayList<Map>();
 		
 		while (cursor.hasNext()) {
 			BasicDBObject obj = (BasicDBObject) cursor.next();
-			FoodBean foodbean = new FoodBean();
-		    try {
-		    	foodbean.setType(obj.getString("type"));
-		    	foodbean.setQuantity(obj.getString("quantity"));
-		    	foodbean.setValid_start_date(obj.getString("valid_start_date"));
-		    	foodbean.setValid_end_date(obj.getString("valid_end_date"));
-		    	allfood.add(foodbean);
-				
-		    } catch (Exception e) {
-		    	e.printStackTrace();
-		    }
+			Map resultElementMap = obj.toMap();
+			resultElementMap.remove("_id");
+	    	allfood.add(resultElementMap);
 		}
-		  return allfood;
+		JSONObject response = new JSONObject();
+		try {
+			response.put("food", allfood);
+		} catch (JSONException e) {
+			e.printStackTrace();
+		}
+		return Response.status(200).entity(response.toString()).build();
 	}
 	
 	@GET
@@ -104,27 +115,124 @@ public class FoodTracker {
 	}
 
     @POST
-	@Path("/addfood")
+//	@Path("/addfood")
     @Consumes(MediaType.APPLICATION_JSON)
-    @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-	
-	public static Response addFood(@HeaderParam("type") String type, @HeaderParam("quantity") String quantity, @HeaderParam("valid_start_date") String valid_start_date, @HeaderParam("valid_end_date") String valid_end_date) throws UnknownHostException {
-		System.out.println("Inside foodtracker : " + type + quantity);
-    	String result = "Invalid";
-		MongoClient mongo = new MongoClient( "localhost" , 27017 );
-		DB db = mongo.getDB("FoodRepository");
-		DBCollection collection = db.getCollection("foodbank");
+    @Produces(MediaType.APPLICATION_JSON)
+	public Response addFood(String input){
+		
+    	JSONObject errorBody;
+    	JSONObject inputBody;
+		try {
+			inputBody = new JSONObject(input);
+		} catch (JSONException e) {
+			e.printStackTrace();
+			errorBody = getErrorBody("Invalid request body");
+			return Response.status(400).entity(errorBody.toString()).build();
+		}
+    	
+    	if (! (inputBody.has("type") && inputBody.has("quantity") && inputBody.has("location"))) {
+    		errorBody = getErrorBody("Missing required parameters");
+    		return Response.status(400).entity(errorBody.toString()).build();
+    	}
+
+		MongoClient mongo;
+		try {
+			mongo = new MongoClient( mongoServerURL, mongoPort);
+		} catch (UnknownHostException e) {
+			e.printStackTrace();
+			errorBody = getErrorBody("Internal Server Error");
+			return Response.status(500).entity(errorBody.toString()).build();
+		}
+		DB db = mongo.getDB(appDatabaseName);
+		DBCollection collection = db.getCollection(foodCollectionName);
 		
 		BasicDBObject document = new BasicDBObject();		
-		document.put("type", type);
-		document.put("quantity", quantity);
-		document.put("valid_start_date", valid_start_date);
-		document.put("valid_end_date", valid_end_date);
+
+		try {
+			document.put("type", inputBody.getString("type"));
+			document.put("quantity", inputBody.getString("quantity"));
+			document.put("location", inputBody.getString("location"));
+		} catch (JSONException e) {
+			e.printStackTrace();
+			errorBody = getErrorBody("Internal Server Error");
+			return Response.status(500).entity(errorBody.toString()).build();
+		}
+
 		collection.insert(document);
-		result = "Added successfully !";
-		return Response.status(201).entity(result).build();
+		return Response.status(201).build();
 	}
     
+    @DELETE
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    public Response deleteFood(String input) {
+    	JSONObject errorBody;
+    	JSONObject inputBody;
+		try {
+			inputBody = new JSONObject(input);
+		} catch (JSONException e) {
+			e.printStackTrace();
+			errorBody = getErrorBody("Invalid request body");
+    		return Response.status(400).entity(errorBody.toString()).build();
+		}
+    	
+    	if (!(inputBody.has("location") && inputBody.has("type"))) {
+    		errorBody = getErrorBody("Invalid request body");
+    		return Response.status(400).entity(errorBody.toString()).build();
+    	}
+    	
+    	String location;
+    	String type;
+    	
+    	try {
+			location = inputBody.getString("location");
+			type = inputBody.getString("type");
+		} catch (JSONException e) {
+			e.printStackTrace();
+			errorBody = getErrorBody("Invalid request body");
+    		return Response.status(400).entity(errorBody.toString()).build();
+		}
+    	
+    	MongoClient mongo;
+		try {
+			mongo = new MongoClient(mongoServerURL, mongoPort);
+		} catch (UnknownHostException e) {
+
+			e.printStackTrace();
+			errorBody = getErrorBody("Internal Server Error");
+    		return Response.status(400).entity(errorBody.toString()).build();
+		}
+
+		DB db = mongo.getDB(appDatabaseName);
+		DBCollection collection = db.getCollection(foodCollectionName);
+		
+		BasicDBObject searchQuery = new BasicDBObject();
+		searchQuery.put("location", location);
+		searchQuery.put("type", type);
+		
+		DBObject object = collection.findOne(searchQuery);
+		
+		if (object == null) {
+			errorBody = getErrorBody("Food not found");
+			return Response.status(404).entity(errorBody.toString()).build();
+		}
+		
+		System.out.println(object);
+		
+		JSONObject outputBody;
+		try {
+			outputBody = new JSONObject(object.toString());
+			outputBody.remove("_id");
+		} catch (JSONException e) {
+			e.printStackTrace();
+			errorBody = getErrorBody("Internal Server Error");
+			return Response.status(500).entity(errorBody.toString()).build();
+		}
+		
+		collection.findAndRemove(searchQuery);
+		
+    	return Response.status(200).entity(outputBody.toString()).build();
+    }
     
     @POST
 	@Path("/deletefoodbytype")
@@ -181,6 +289,16 @@ public class FoodTracker {
 		collection.update(query, updateObj);
 		return update_status = true;
 	}
-
-	
+    
+	public static JSONObject getErrorBody(String errorMessage) {
+		
+		JSONObject errorBody = new JSONObject();
+		
+		try {
+			errorBody.put("error", errorMessage);
+		} catch (JSONException e) {
+			e.printStackTrace();
+		}
+		return errorBody;
+	}
 }
