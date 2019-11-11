@@ -46,7 +46,7 @@ import com.mongodb.MongoClient;
 public class FoodTracker {
 
 	@GET
-	@Path("/getAllFood")
+	@Path("/getallfood")
 	@Produces(MediaType.APPLICATION_JSON)
 	public static ArrayList<FoodBean> findFoodAll() throws UnknownHostException
 	{
@@ -75,7 +75,7 @@ public class FoodTracker {
 	}
 	
 	@GET
-	@Path("/getFoodByType")
+	@Path("/getfoodbytype")
 	@Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
 	public static ArrayList<FoodBean> findByType(@HeaderParam("type") String type) throws UnknownHostException
@@ -104,7 +104,7 @@ public class FoodTracker {
 	}
 
     @POST
-	@Path("/addFood")
+	@Path("/addfood")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
 	
@@ -127,7 +127,7 @@ public class FoodTracker {
     
     
     @POST
-	@Path("/deleteFoodByType")
+	@Path("/deletefoodbytype")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
 	public static boolean deleteFoodByType(@HeaderParam("type") String type) throws UnknownHostException
@@ -144,7 +144,7 @@ public class FoodTracker {
 	}
 	
     @POST
-	@Path("/deleteAllFood")
+	@Path("/deleteallfood")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
 	public static boolean deleteAllFood() throws UnknownHostException
@@ -162,7 +162,7 @@ public class FoodTracker {
 	}
 	
     @POST
-	@Path("/updateByType")
+	@Path("/updatebytype")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
 	public static boolean updateByType(@HeaderParam("type") String type, @HeaderParam("new_qty") String new_qty) throws UnknownHostException
