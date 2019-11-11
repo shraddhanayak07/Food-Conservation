@@ -42,9 +42,9 @@ import com.mongodb.MongoClient;
 
 @Path("/food")
 public class FoodTracker {
-	
+
 	@GET
-	@Path("/getall")
+	@Path("/getAllFood")
 	@Produces(MediaType.APPLICATION_JSON)
 	public static ArrayList<FoodBean> findFoodAll() throws UnknownHostException
 	{
@@ -72,8 +72,11 @@ public class FoodTracker {
 		  return allfood;
 	}
 	
-	
-	public static ArrayList<FoodBean> findByType(String type) throws UnknownHostException
+	@GET
+	@Path("/getFoodByType")
+	@Produces(MediaType.APPLICATION_JSON)
+    @Consumes(MediaType.APPLICATION_JSON)
+	public static ArrayList<FoodBean> findByType(@HeaderParam("type") String type) throws UnknownHostException
 	{
 		MongoClient mongo = new MongoClient( "localhost" , 27017 );
 		DB db = mongo.getDB("FoodRepository");
@@ -97,14 +100,15 @@ public class FoodTracker {
 		}
 		  return allfoodbytype;
 	}
-	
+
     @POST
-	@Path("/post")
+	@Path("/addFood")
     @Consumes(MediaType.APPLICATION_JSON)
-    //@Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
+    @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
 	
-	public static Response addFood(@PathParam("type") String type, @PathParam("quantity") float quantity, @PathParam("valid_start_date") String valid_start_date, @PathParam("valid_end_date") String valid_end_date) throws UnknownHostException {
-		boolean add_status = false;
+	public static Response addFood(@HeaderParam("type") String type, @HeaderParam("quantity") String quantity, @HeaderParam("valid_start_date") String valid_start_date, @HeaderParam("valid_end_date") String valid_end_date) throws UnknownHostException {
+		System.out.println("Inside foodtracker : " + type + quantity);
+    	String result = "Invalid";
 		MongoClient mongo = new MongoClient( "localhost" , 27017 );
 		DB db = mongo.getDB("FoodRepository");
 		DBCollection collection = db.getCollection("foodbank");
@@ -115,11 +119,16 @@ public class FoodTracker {
 		document.put("valid_start_date", valid_start_date);
 		document.put("valid_end_date", valid_end_date);
 		collection.insert(document);
-		return Response.status(201).entity(add_status).build();
+		result = "Added successfully !";
+		return Response.status(201).entity(result).build();
 	}
-
     
-	public static boolean deleteFoodByType(@PathParam("type") String type) throws UnknownHostException
+    
+    @POST
+	@Path("/deleteFoodByType")
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
+	public static boolean deleteFoodByType(@HeaderParam("type") String type) throws UnknownHostException
 	{
 		MongoClient mongo = new MongoClient( "localhost" , 27017 );
 		DB db = mongo.getDB("FoodRepository");
@@ -132,6 +141,10 @@ public class FoodTracker {
 		return del_status = true;
 	}
 	
+    @POST
+	@Path("/deleteAllFood")
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
 	public static boolean deleteAllFood() throws UnknownHostException
 	{
 		MongoClient mongo = new MongoClient( "localhost" , 27017 );
@@ -146,8 +159,11 @@ public class FoodTracker {
 		return del_status = true;
 	}
 	
-	
-	public static boolean updateByType(@PathParam("oldname") String oldname, @PathParam("newname") String newname) throws UnknownHostException
+    @POST
+	@Path("/updateByType")
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
+	public static boolean updateByType(@HeaderParam("type") String type, @HeaderParam("new_qty") String new_qty) throws UnknownHostException
 	{
 		MongoClient mongo = new MongoClient( "localhost" , 27017 );
 		DB db = mongo.getDB("FoodRepository");
@@ -155,23 +171,7 @@ public class FoodTracker {
 		
 		boolean update_status = false;
 		BasicDBObject query = new BasicDBObject();
-		query.put("type", oldname);
-		BasicDBObject newDocument = new BasicDBObject();
-		newDocument.put("type", newname);			
-		BasicDBObject updateObj = new BasicDBObject();
-		updateObj.put("$set", newDocument);
-		collection.update(query, updateObj);
-		return update_status = true;
-	}
-	
-	public static boolean updateByQuantity(@PathParam("old_qty") String old_qty, @PathParam("new_qty") String new_qty) throws UnknownHostException
-	{
-		MongoClient mongo = new MongoClient( "localhost" , 27017 );
-		DB db = mongo.getDB("FoodRepository");
-		DBCollection collection = db.getCollection("foodbank");
-		boolean update_status = false;
-		BasicDBObject query = new BasicDBObject();
-		query.put("quantity", old_qty);
+		query.put("type", type);
 		BasicDBObject newDocument = new BasicDBObject();
 		newDocument.put("quantity", new_qty);			
 		BasicDBObject updateObj = new BasicDBObject();
@@ -179,5 +179,6 @@ public class FoodTracker {
 		collection.update(query, updateObj);
 		return update_status = true;
 	}
+
 	
 }
