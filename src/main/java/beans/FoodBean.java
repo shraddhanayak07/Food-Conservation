@@ -7,10 +7,10 @@ public class FoodBean {
 	public void setType(String type) {
 		this.type = type;
 	}
-	public float getQuantity() {
+	public String getQuantity() {
 		return quantity;
 	}
-	public void setQuantity(float quantity) {
+	public void setQuantity(String quantity) {
 		this.quantity = quantity;
 	}
 	public String getValid_start_date() {
@@ -27,7 +27,7 @@ public class FoodBean {
 	}
 	
 	String type;
-	float quantity;
+	String quantity;
 	String valid_start_date; 
 	String valid_end_date;
 }
