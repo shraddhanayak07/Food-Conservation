@@ -15,98 +15,144 @@ import com.mongodb.DB;
 import com.mongodb.DBCollection;
 import com.mongodb.DBCursor;
 import com.mongodb.MongoClient;
+import java.net.UnknownHostException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 
+import javax.ws.rs.Consumes;
+import javax.ws.rs.GET;
+import javax.ws.rs.POST;
+import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
+import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
+
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import com.mongodb.BasicDBObject;
+import com.mongodb.DB;
+import com.mongodb.DBCollection;
+import com.mongodb.DBCursor;
+import com.mongodb.DBObject;
+import com.mongodb.MongoClient;
+
+@Path("/food")
 public class FoodTracker {
-		
-		/* This has insert, update, delete, search operations of all food entities */
-		
-		public static String mongoServerURL = "localhost";
-		public static int mongoPort = 27017;
-		public static String appDatabaseName = "food_conservation";
-		public static String locationCollectionName = "foodbank";
 	
+	@GET
+	@Path("/getall")
+	@Produces(MediaType.APPLICATION_JSON)
+	public static ArrayList<FoodBean> findFoodAll() throws UnknownHostException
+	{
+		MongoClient mongo = new MongoClient( "localhost" , 27017 );
+		DB db = mongo.getDB("FoodRepository");
+		DBCollection collection = db.getCollection("foodbank");
 		
-	public static boolean addFood(String type, float quantity, String valid_start_date, String valid_end_date) {
+		ArrayList<FoodBean> allfood = new ArrayList<FoodBean>();
+		DBCursor cursor = collection.find();
+		
+		while (cursor.hasNext()) {
+			BasicDBObject obj = (BasicDBObject) cursor.next();
+			FoodBean foodbean = new FoodBean();
+		    try {
+		    	foodbean.setType(obj.getString("type"));
+		    	foodbean.setQuantity(obj.getString("quantity"));
+		    	foodbean.setValid_start_date(obj.getString("valid_start_date"));
+		    	foodbean.setValid_end_date(obj.getString("valid_end_date"));
+		    	allfood.add(foodbean);
+				
+		    } catch (Exception e) {
+		    	e.printStackTrace();
+		    }
+		}
+		  return allfood;
+	}
+	
+	
+	public static ArrayList<FoodBean> findByType(String type) throws UnknownHostException
+	{
+		MongoClient mongo = new MongoClient( "localhost" , 27017 );
+		DB db = mongo.getDB("FoodRepository");
+		DBCollection collection = db.getCollection("foodbank");
+		ArrayList<FoodBean> allfoodbytype = new ArrayList<FoodBean>();
+		BasicDBObject searchQuery = new BasicDBObject();
+		searchQuery.put("type", type);
+		DBCursor cursor = collection.find(searchQuery);
+		while (cursor.hasNext()) {
+			BasicDBObject obj = (BasicDBObject) cursor.next();
+			FoodBean foodbean = new FoodBean();
+		    try {
+		    	foodbean.setType(obj.getString("type"));
+		    	foodbean.setQuantity(obj.getString("quantity"));
+		    	foodbean.setValid_start_date(obj.getString("valid_start_date"));
+		    	foodbean.setValid_end_date(obj.getString("valid_end_date"));
+		    	allfoodbytype.add(foodbean);
+		    } catch (Exception e) {
+		    	e.printStackTrace();
+		    }
+		}
+		  return allfoodbytype;
+	}
+	
+    @POST
+	@Path("/post")
+    @Consumes(MediaType.APPLICATION_JSON)
+    //@Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
+	
+	public static Response addFood(@PathParam("type") String type, @PathParam("quantity") float quantity, @PathParam("valid_start_date") String valid_start_date, @PathParam("valid_end_date") String valid_end_date) throws UnknownHostException {
 		boolean add_status = false;
-		//System.out.println("Adding food into database : "+ type + quantity);
+		MongoClient mongo = new MongoClient( "localhost" , 27017 );
+		DB db = mongo.getDB("FoodRepository");
+		DBCollection collection = db.getCollection("foodbank");
+		
 		BasicDBObject document = new BasicDBObject();		
 		document.put("type", type);
 		document.put("quantity", quantity);
 		document.put("valid_start_date", valid_start_date);
 		document.put("valid_end_date", valid_end_date);
-		locationCollectionName.insert(document);
-		add_status = true;
+		collection.insert(document);
+		return Response.status(201).entity(add_status).build();
 	}
 
-
-	public static JSONArray findByType(DBCollection table, String type)
+    
+	public static boolean deleteFoodByType(@PathParam("type") String type) throws UnknownHostException
 	{
-		JSONArray jsonarray = new JSONArray();
-		BasicDBObject searchQuery = new BasicDBObject();
-		searchQuery.put("type", type);
-		DBCursor cursor = table.find(searchQuery);
-		while (cursor.hasNext()) {
-			BasicDBObject obj = (BasicDBObject) cursor.next();
-		    JSONObject jsonobj = new JSONObject();
-		    BasicDBList name = (BasicDBList) obj.get("Name");
-		    try {
-				jsonobj.put("type", obj.getString("type"));
-				jsonobj.put("quantity", obj.getString("quantity"));
-				jsonobj.put("valid_start_date", obj.getString("valid_start_date"));
-				jsonobj.put("valid_end_date", obj.getString("valid_end_date"));
-				jsonarray.put(jsonobj);
-		    } catch (JSONException e) {
-		    	// TODO Auto-generated catch block
-		    	e.printStackTrace();
-		    }
-		}
-		  return jsonarray;
-	}
-	
-	public static boolean deleteFoodByType(String type)
-	{
+		MongoClient mongo = new MongoClient( "localhost" , 27017 );
+		DB db = mongo.getDB("FoodRepository");
+		DBCollection collection = db.getCollection("foodbank");
+		
 		boolean del_status = false;
 		BasicDBObject searchQuery = new BasicDBObject();
 		searchQuery.put("type", type);
-		locationCollectionName.remove(searchQuery);
+		collection.remove(searchQuery);
 		return del_status = true;
 	}
 	
-	public static boolean deleteAllFood()
+	public static boolean deleteAllFood() throws UnknownHostException
 	{
+		MongoClient mongo = new MongoClient( "localhost" , 27017 );
+		DB db = mongo.getDB("FoodRepository");
+		DBCollection collection = db.getCollection("foodbank");
+		
 		boolean del_status = false;
-		DBCursor cursor = locationCollectionName.find();
+		DBCursor cursor = collection.find();
 		while (cursor.hasNext()) {
-			locationCollectionName.remove(cursor.next());
+			collection.remove(cursor.next());
 		}
 		return del_status = true;
 	}
 	
-	public static JSONArray findFoodAll(DBCollection locationCollectionName)
-	{
-		JSONArray jsonarray = null;
-		DBCursor cursor = locationCollectionName.find();
-		while (cursor.hasNext()) {
-			BasicDBObject obj = (BasicDBObject) cursor.next();
-		    JSONObject jsonobj = new JSONObject();
-		    BasicDBList name = (BasicDBList) obj.get("Name");
-		    try {
-				jsonobj.put("type", obj.getString("type"));
-				jsonobj.put("quantity", obj.getString("quantity"));
-				jsonobj.put("valid_start_date", obj.getString("valid_start_date"));
-				jsonobj.put("valid_end_date", obj.getString("valid_end_date"));
-				jsonarray.put(jsonobj);
-		    } catch (JSONException e) {
-		    	// TODO Auto-generated catch block
-		    	e.printStackTrace();
-		    }
-		}
-		  return jsonarray;
-	}
 	
-	
-	public static boolean updateByType(String oldname, String newname)
+	public static boolean updateByType(@PathParam("oldname") String oldname, @PathParam("newname") String newname) throws UnknownHostException
 	{
+		MongoClient mongo = new MongoClient( "localhost" , 27017 );
+		DB db = mongo.getDB("FoodRepository");
+		DBCollection collection = db.getCollection("foodbank");
+		
 		boolean update_status = false;
 		BasicDBObject query = new BasicDBObject();
 		query.put("type", oldname);
@@ -114,12 +160,15 @@ public class FoodTracker {
 		newDocument.put("type", newname);			
 		BasicDBObject updateObj = new BasicDBObject();
 		updateObj.put("$set", newDocument);
-		locationCollectionName.update(query, updateObj);
+		collection.update(query, updateObj);
 		return update_status = true;
 	}
 	
-	public static boolean updateByQuantity(String old_qty, String new_qty)
+	public static boolean updateByQuantity(@PathParam("old_qty") String old_qty, @PathParam("new_qty") String new_qty) throws UnknownHostException
 	{
+		MongoClient mongo = new MongoClient( "localhost" , 27017 );
+		DB db = mongo.getDB("FoodRepository");
+		DBCollection collection = db.getCollection("foodbank");
 		boolean update_status = false;
 		BasicDBObject query = new BasicDBObject();
 		query.put("quantity", old_qty);
@@ -127,9 +176,8 @@ public class FoodTracker {
 		newDocument.put("quantity", new_qty);			
 		BasicDBObject updateObj = new BasicDBObject();
 		updateObj.put("$set", newDocument);
-		locationCollectionName.update(query, updateObj);
+		collection.update(query, updateObj);
 		return update_status = true;
 	}
-
+	
 }
-
