@@ -2,7 +2,10 @@ package org.sjsu.food_conservation_app;
 
 import beans.FoodBean;
 import java.net.UnknownHostException;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
@@ -52,13 +55,14 @@ public class FoodTracker {
 		} catch (UnknownHostException e1) {
 			e1.printStackTrace();
 			errorBody = getErrorBody("Internal Server Error");
-			return Response.status(50).entity(errorBody.toString()).build();
+			return Response.status(500).entity(errorBody.toString()).build();
 		}
 		
 		DB db = mongo.getDB(appDatabaseName);
 		DBCollection collection = db.getCollection(foodCollectionName);
 		
 		BasicDBObject searchQuery = new BasicDBObject();
+		searchQuery.put("distributed", false);
 		if (! type.equals("======")) {
 			searchQuery.put("type", type);
 		}
@@ -130,7 +134,7 @@ public class FoodTracker {
 			return Response.status(400).entity(errorBody.toString()).build();
 		}
     	
-    	if (! (inputBody.has("type") && inputBody.has("quantity") && inputBody.has("location"))) {
+    	if (! (inputBody.has("type") && inputBody.has("quantity") && inputBody.has("location") && inputBody.has("donated_by"))) {
     		errorBody = getErrorBody("Missing required parameters");
     		return Response.status(400).entity(errorBody.toString()).build();
     	}
@@ -148,10 +152,16 @@ public class FoodTracker {
 		
 		BasicDBObject document = new BasicDBObject();		
 
+		DateFormat dateFormat = new SimpleDateFormat("dd/MM/yyyy HH:mm:ss");
+		Date date = new Date();
+		
 		try {
 			document.put("type", inputBody.getString("type"));
 			document.put("quantity", inputBody.getString("quantity"));
 			document.put("location", inputBody.getString("location"));
+			document.put("donated_by", inputBody.getString("donated_by"));
+			document.put("donated_date", dateFormat.format(date));
+			document.put("distributed", false);
 		} catch (JSONException e) {
 			e.printStackTrace();
 			errorBody = getErrorBody("Internal Server Error");
@@ -176,17 +186,20 @@ public class FoodTracker {
     		return Response.status(400).entity(errorBody.toString()).build();
 		}
     	
-    	if (!(inputBody.has("location") && inputBody.has("type"))) {
+    	if (!(inputBody.has("location") && inputBody.has("type") && inputBody.has("distributed_by"))) {
     		errorBody = getErrorBody("Invalid request body");
     		return Response.status(400).entity(errorBody.toString()).build();
     	}
     	
     	String location;
     	String type;
-    	
+    	String distributedBy;
+
     	try {
 			location = inputBody.getString("location");
 			type = inputBody.getString("type");
+			distributedBy = inputBody.getString("distributed_by");
+			
 		} catch (JSONException e) {
 			e.printStackTrace();
 			errorBody = getErrorBody("Invalid request body");
@@ -209,6 +222,7 @@ public class FoodTracker {
 		BasicDBObject searchQuery = new BasicDBObject();
 		searchQuery.put("location", location);
 		searchQuery.put("type", type);
+		searchQuery.put("distributed", false);
 		
 		DBObject object = collection.findOne(searchQuery);
 		
@@ -218,7 +232,7 @@ public class FoodTracker {
 		}
 		
 		System.out.println(object);
-		
+		DBObject updateObject = object;
 		JSONObject outputBody;
 		try {
 			outputBody = new JSONObject(object.toString());
@@ -229,8 +243,16 @@ public class FoodTracker {
 			return Response.status(500).entity(errorBody.toString()).build();
 		}
 		
-		collection.findAndRemove(searchQuery);
+		BasicDBObject document = new BasicDBObject();		
+		DateFormat dateFormat = new SimpleDateFormat("dd/MM/yyyy HH:mm:ss");
+		Date date = new Date();
 		
+//		collection.findAndRemove(searchQuery);
+		updateObject.put("distributed", true);
+		updateObject.put("distributed_on", dateFormat.format(date));
+		updateObject.put("distributed_by", distributedBy);
+
+		collection.findAndModify(searchQuery, updateObject);
     	return Response.status(200).entity(outputBody.toString()).build();
     }
     
