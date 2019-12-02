@@ -82,21 +82,41 @@ public class History {
 			Map resultElementMap = obj.toMap();
 
 			String location = (String) resultElementMap.get("location");
-
+			String distributed_by = (String) resultElementMap.get("distributed_by");
+			String donated_by = (String) resultElementMap.get("donated_by");
+			
 			JSONObject location_details = getLocationDetails(location, db);
+			JSONObject distributed_by_user_details = getUserDetails(distributed_by, db);
+			JSONObject donated_by_user_details = getUserDetails(donated_by, db);
 
+			System.out.println(distributed_by_user_details);
+			System.out.println(donated_by_user_details);
 			resultElementMap.remove("_id");
 			String location_address;
 			String location_city;
+			String donated_by_first_name;
+			String donated_by_last_name;
+			String distributed_by_first_name;
+			String distributed_by_last_name;
 			try {
 				location_address = location_details.getString("Address");
 				location_city = location_details.getString("City");
+				donated_by_first_name = donated_by_user_details.getString("firstName");
+				donated_by_last_name = donated_by_user_details.getString("lastName");
+				distributed_by_first_name = distributed_by_user_details.getString("firstName");
+				distributed_by_last_name = distributed_by_user_details.getString("lastName");
 			} catch (JSONException e) {
 				e.printStackTrace();
 				return Response.status(500).build();
 			}
 			resultElementMap.put("location_address", location_address);
 			resultElementMap.put("location_city", location_city);
+			resultElementMap.put("donated_by_first_name", donated_by_first_name);
+			resultElementMap.put("donated_by_last_name", donated_by_last_name);
+			resultElementMap.put("distributed_by_first_name", distributed_by_first_name);
+			resultElementMap.put("distributed_by_last_name", distributed_by_last_name);
+			
+			
 	    	allfood.add(resultElementMap);
 		}
 		JSONObject response = new JSONObject();
@@ -106,6 +126,29 @@ public class History {
 			e.printStackTrace();
 		}
 		return Response.status(200).entity(response.toString()).build();
+	}
+	
+	public static JSONObject getUserDetails(String user, DB db) {
+
+		JSONObject response = new JSONObject();
+		DBCollection collection = db.getCollection("users");
+		
+		BasicDBObject searchQuery = new BasicDBObject("userID", user);
+		DBObject document = collection.findOne(searchQuery);
+		
+		if (document == null) {
+			return response;
+		}
+		
+		try {
+			response = new JSONObject(document.toString());
+			response.remove("_id");
+			response.remove("password");
+			response.remove("salt");
+		} catch (JSONException e) {
+			return response;
+		}
+		return response;
 	}
 	
 	public static JSONObject getLocationDetails(String location, DB db) {
