@@ -80,7 +80,23 @@ public class History {
 		while (cursor.hasNext()) {
 			BasicDBObject obj = (BasicDBObject) cursor.next();
 			Map resultElementMap = obj.toMap();
+
+			String location = (String) resultElementMap.get("location");
+
+			JSONObject location_details = getLocationDetails(location, db);
+
 			resultElementMap.remove("_id");
+			String location_address;
+			String location_city;
+			try {
+				location_address = location_details.getString("Address");
+				location_city = location_details.getString("City");
+			} catch (JSONException e) {
+				e.printStackTrace();
+				return Response.status(500).build();
+			}
+			resultElementMap.put("location_address", location_address);
+			resultElementMap.put("location_city", location_city);
 	    	allfood.add(resultElementMap);
 		}
 		JSONObject response = new JSONObject();
@@ -90,6 +106,27 @@ public class History {
 			e.printStackTrace();
 		}
 		return Response.status(200).entity(response.toString()).build();
+	}
+	
+	public static JSONObject getLocationDetails(String location, DB db) {
+		
+		JSONObject response = new JSONObject();
+		DBCollection collection = db.getCollection("points");
+		BasicDBObject searchQuery = new BasicDBObject("PointID", location);
+		DBObject document = collection.findOne(searchQuery);
+		
+		if (document == null) {
+			return response;
+		}
+		
+		try {
+			response = new JSONObject(document.toString());
+			response.remove("_id");
+		} catch (JSONException e) {
+			
+			return response;
+		}
+		return response;
 	}
 	
 	public static JSONObject getErrorBody(String errorMessage) {
